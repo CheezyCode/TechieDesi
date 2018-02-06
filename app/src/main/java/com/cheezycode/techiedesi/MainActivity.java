@@ -9,8 +9,16 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AbsListView;
 import android.widget.Toast;
+
+import com.github.ybq.android.spinkit.SpinKitView;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -24,13 +32,24 @@ public class MainActivity extends AppCompatActivity {
     ActionBarDrawerToggle actionBarDrawerToggle;
     NavigationView navigationView;
     RecyclerView recyclerView;
+    LinearLayoutManager manager;
+    PostAdapter adapter;
+    List<Item> items = new ArrayList<>();
+    Boolean isScrolling = false;
+    int currentItems, totalItems, scrollOutItems;
+    String token = "";
+    SpinKitView progress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         recyclerView = (RecyclerView) findViewById(R.id.postList);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        manager = new LinearLayoutManager(this);
+        adapter = new PostAdapter(this, items);
+        recyclerView.setLayoutManager(manager);
+        recyclerView.setAdapter(adapter);
+        progress = (SpinKitView) findViewById(R.id.spin_kit);
 
         setUpToolbar();
         navigationView = (NavigationView) findViewById(R.id.navigation_menu);
@@ -49,6 +68,30 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                if(newState == AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL)
+                {
+                    isScrolling = true;
+                }
+            }
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                currentItems = manager.getChildCount();
+                totalItems = manager.getItemCount();
+                scrollOutItems = manager.findFirstVisibleItemPosition();
+
+                if(isScrolling && (currentItems + scrollOutItems == totalItems))
+                {
+                    isScrolling = false;
+                    getData();
+                }
+            }
+        });
         getData();
     }
 
@@ -64,13 +107,24 @@ public class MainActivity extends AppCompatActivity {
 
     private void getData()
     {
-        Call<PostList> postList = BloggerAPI.getService().getPostList();
+        String url = BloggerAPI.url + "?key=" + BloggerAPI.key;
+        if(token != ""){
+            url = url+ "&pageToken="+ token;
+        }
+        if(token == null){
+            return;
+        }
+        progress.setVisibility(View.VISIBLE);
+        final Call<PostList> postList = BloggerAPI.getService().getPostList(url);
         postList.enqueue(new Callback<PostList>() {
             @Override
             public void onResponse(Call<PostList> call, Response<PostList> response) {
                 PostList list = response.body();
-                recyclerView.setAdapter(new PostAdapter(MainActivity.this, list.getItems()));
+                token = list.getNextPageToken();
+                items.addAll(list.getItems());
+                adapter.notifyDataSetChanged();
                 Toast.makeText(MainActivity.this, "Success", Toast.LENGTH_SHORT).show();
+                progress.setVisibility(View.GONE);
             }
 
             @Override

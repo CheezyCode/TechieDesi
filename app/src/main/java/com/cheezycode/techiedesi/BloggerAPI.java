@@ -5,11 +5,12 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
+import retrofit2.http.Url;
 
 public class BloggerAPI {
 
-    private static final String key = "AIzaSyAVgAw1TDa-mZzcr18-3FKXAKAXEIyubM0";
-    private static final String url = "https://www.googleapis.com/blogger/v3/blogs/394040623688436172/posts/";
+    public static final String key = "AIzaSyAVgAw1TDa-mZzcr18-3FKXAKAXEIyubM0";
+    public static final String url = "https://www.googleapis.com/blogger/v3/blogs/394040623688436172/posts/";
 
     public static PostService postService = null;
 
@@ -28,8 +29,8 @@ public class BloggerAPI {
     }
 
     public interface PostService {
-        @GET("?key=" + key)
-        Call<PostList> getPostList();
+        @GET
+        Call<PostList> getPostList(@Url String url);
     }
 
 
