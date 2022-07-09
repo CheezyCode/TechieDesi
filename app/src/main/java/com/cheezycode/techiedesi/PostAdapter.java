@@ -46,10 +46,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
         Document document = Jsoup.parse(item.getContent());
         holder.postDescription.setText(document.text());
-
-        Elements elements = document.select("img");
-        Glide.with(context).load(elements.get(0).attr("src")).into(holder.postImage);
-
+        try {
+            Elements elements = document.select("img");
+            Glide.with(context).load(elements.get(0).attr("src")).into(holder.postImage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
